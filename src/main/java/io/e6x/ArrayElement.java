@@ -5,7 +5,7 @@ class ArrayElement implements Comparable<ArrayElement> {
     int elemIndex;
     int chunkNumber;
 
-    public ArrayElement(int value, int elemIndex, int chunkNumber) {
+    public ArrayElement(int value, int chunkNumber) {
         this.value = value;
         this.elemIndex = elemIndex;
         this.chunkNumber = chunkNumber;

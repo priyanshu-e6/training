@@ -22,7 +22,7 @@ public class GenerateData {
                 numsPut += 1;
                 // TODO: possible speedup
             }
-            //os.flush();
+            os.flush();
             System.out.println("Random integers have been written to the file.");
             final long duration = (System.nanoTime() - startTime) / 1_000_000;
             System.out.println("Time taken to generate random numbers and write into a file: " + duration);

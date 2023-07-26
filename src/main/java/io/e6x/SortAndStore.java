@@ -125,8 +125,8 @@ public class SortAndStore {
                 (buffer[2] & 0xFF) << 8 |
                 (buffer[3] & 0xFF);
     }
-    /*private static void mergeSortedSections(int[] inputData, int start1, int start2, int end){
-
+    private static void mergeSortedSections(int[] inputData, int start1, int start2, int end){
+        long startOfMergeTime = System.currentTimeMillis();
         int[] temp = new int[end - start1 + 1];
         int i = start1, j = start2 + 1, k = 0;
 
@@ -154,7 +154,9 @@ public class SortAndStore {
         }
 
         System.arraycopy(temp, 0, inputData, 0, end - start1 + 1);
-    }*/
+        long elapsedTime = (System.currentTimeMillis() - startOfMergeTime);
+        System.out.println("Time for merge function: " + elapsedTime + " ms");
+    }
 
     /*private static void mergeArraysWithHeaps(int[] inputData,  int end){
         int total_length = end ;
@@ -189,31 +191,37 @@ public class SortAndStore {
         }
     }*/
     private static void mergeArraysWithHeaps(int[] inputData, int cores, int section_len, long len) {
+
+        long startOfMergeTime = System.currentTimeMillis();
+
         PriorityQueue<ArrayElement> pq = new PriorityQueue<>();
         int[] sortedData = new int[(int) len];
         int[] sectionIndex = new int[cores];
 
-        for (int j = 0; j < cores; j++){
-            pq.offer(new ArrayElement(inputData[j * section_len], j*section_len, j));
-            sectionIndex[j] = j*section_len;
+        for (int chunkIdx = 0; chunkIdx < cores; chunkIdx++){
+            pq.offer(new ArrayElement(inputData[chunkIdx * section_len],  chunkIdx));
+
         }
-        int reached = cores;
+        for (int chunkIdx = 0; chunkIdx < cores; chunkIdx++){
+            sectionIndex[chunkIdx] = chunkIdx*section_len;
+        }
 
         int i = 0;
-        while (!pq.isEmpty()) {
+        for (int j = 0; j < len - cores; j++) {
             ArrayElement minElement = pq.poll();
             int minVal = minElement.getValue();
             int chunkNumber = minElement.getChunkNumber();
 
-            sortedData[i] = minVal;
+            inputData[i] = minVal;
             sectionIndex[chunkNumber]++;
 
             if (sectionIndex[chunkNumber] < (chunkNumber + 1) * section_len) {
-                pq.offer(new ArrayElement(inputData[sectionIndex[chunkNumber]], sectionIndex[chunkNumber], chunkNumber));
+                pq.offer(new ArrayElement(inputData[sectionIndex[chunkNumber]],  chunkNumber));
             }
-
             i++;
         }
+        long elapsedTime = (System.currentTimeMillis() - startOfMergeTime);
+        System.out.println("Time for merge function: " + elapsedTime + " ms");
         System.arraycopy(sortedData, 0, inputData, 0, (int) len);
     }
 }
