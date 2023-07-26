@@ -70,7 +70,7 @@ public class SortAndStore {
 
         int sectionSize = (int) len / cores;
 
-         //using merging of parts by iterating
+        //using merging of parts by iterating
 
         /*for (int i = 1; i < cores; i++) {
             mergeSortedSections(inputData, 0, i * sectionSize - 1, (i+1) * sectionSize  - 1);
@@ -125,7 +125,8 @@ public class SortAndStore {
                 (buffer[2] & 0xFF) << 8 |
                 (buffer[3] & 0xFF);
     }
-    private static void mergeSortedSections(int[] inputData, int start1, int start2, int end){
+
+    private static void mergeSortedSections(int[] inputData, int start1, int start2, int end) {
         long startOfMergeTime = System.currentTimeMillis();
         int[] temp = new int[end - start1 + 1];
         int i = start1, j = start2 + 1, k = 0;
@@ -157,74 +158,8 @@ public class SortAndStore {
         long elapsedTime = (System.currentTimeMillis() - startOfMergeTime);
         System.out.println("Time for merge function: " + elapsedTime + " ms");
     }
-
-    /*private static void mergeArraysWithHeaps(int[] inputData,  int end){
-        int total_length = end ;
-        for (int k = total_length - 1; k >= 0  ; k--) {
-            minHeapify(inputData/2, total_length, k);
-        }
-    }
-    public static void minHeapify(int[] inputData, int N, int i)
-    {
-        // Find largest of node and its children
-        if (i >= N) {
-            return;
-        }
-
-        int l = i * 2 + 1; //left child of parent
-        int r = i * 2 + 2; // right child
-
-        int smallest = i;
-        if (l < N && inputData[l] < inputData[smallest]) {
-            smallest = l;
-        }
-
-        if (r < N && inputData[r] < inputData[smallest]) {
-            smallest = r;
-        }
-
-        if (smallest != i) {
-            int temp = inputData[i];
-            inputData[i] = inputData[smallest];
-            inputData[smallest] = temp;
-            minHeapify(inputData, N, smallest);
-        }
-    }*/
-    private static void mergeArraysWithHeaps(int[] inputData, int cores, int section_len, long len) {
-
-        long startOfMergeTime = System.currentTimeMillis();
-
-        PriorityQueue<ArrayElement> pq = new PriorityQueue<>();
-        int[] sortedData = new int[(int) len];
-        int[] sectionIndex = new int[cores];
-
-        for (int chunkIdx = 0; chunkIdx < cores; chunkIdx++){
-            pq.offer(new ArrayElement(inputData[chunkIdx * section_len],  chunkIdx));
-
-        }
-        for (int chunkIdx = 0; chunkIdx < cores; chunkIdx++){
-            sectionIndex[chunkIdx] = chunkIdx*section_len;
-        }
-
-        int i = 0;
-        for (int j = 0; j < len - cores; j++) {
-            ArrayElement minElement = pq.poll();
-            int minVal = minElement.getValue();
-            int chunkNumber = minElement.getChunkNumber();
-
-            inputData[i] = minVal;
-            sectionIndex[chunkNumber]++;
-
-            if (sectionIndex[chunkNumber] < (chunkNumber + 1) * section_len) {
-                pq.offer(new ArrayElement(inputData[sectionIndex[chunkNumber]],  chunkNumber));
-            }
-            i++;
-        }
-        long elapsedTime = (System.currentTimeMillis() - startOfMergeTime);
-        System.out.println("Time for merge function: " + elapsedTime + " ms");
-        System.arraycopy(sortedData, 0, inputData, 0, (int) len);
-    }
 }
+
 
 
 
