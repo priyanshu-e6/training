@@ -13,21 +13,24 @@ public class SortAndStore {
         final long len = 2L * 1024 * 1024 * 1024 / 4;
         int[] inputData = new int[(int) len];
 
-        // TODO: put buffered input stream inside file input stream to get function of getting int directly with getInt method
+
         int numsRead = 0;
-        try (BufferedInputStream is = new BufferedInputStream(new FileInputStream("/home/priyanshu/Desktop/asgnone/inputFile"))
+        try (DataInputStream is = new DataInputStream(new BufferedInputStream(new FileInputStream("/home/priyanshu/Desktop/asgnone/inputFile")))
         ) {
 
             //takes input and stores in list
-            byte[] buffer = new byte[4];
 
-            while ((is.read(buffer)) != -1) {
-                int value = bytesToInt(buffer);
-                inputData[numsRead] = (value);
-                numsRead += 1;
+            int i=0;
+            try {
+                while (true) {
+                    inputData[i] = is.readInt();
+                    i += 1;
+                }
+            } catch (EOFException e) {
+                // End-of-file reached, stop reading
             }
 
-            System.out.println("Integers read: " + numsRead);
+            System.out.println("Integers read: " + i);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -70,7 +73,7 @@ public class SortAndStore {
 
         int sectionSize = (int) len / cores;
 
-        //using merging of parts by iterating
+         //using merging of parts by iterating
 
         /*for (int i = 1; i < cores; i++) {
             mergeSortedSections(inputData, 0, i * sectionSize - 1, (i+1) * sectionSize  - 1);
@@ -119,47 +122,42 @@ public class SortAndStore {
     }
 
 
-    private static int bytesToInt(byte[] buffer) {
-        return (buffer[0] & 0xFF) << 24 |
-                (buffer[1] & 0xFF) << 16 |
-                (buffer[2] & 0xFF) << 8 |
-                (buffer[3] & 0xFF);
-    }
+    private static void mergeArraysWithHeaps(int[] inputData, int cores, int section_len, long len) {
 
-    private static void mergeSortedSections(int[] inputData, int start1, int start2, int end) {
         long startOfMergeTime = System.currentTimeMillis();
-        int[] temp = new int[end - start1 + 1];
-        int i = start1, j = start2 + 1, k = 0;
 
-        while (i <= start2 && j <= end) {
-            if (inputData[i] <= inputData[j]) {
-                temp[k] = inputData[i];
-                i++;
-            } else {
-                temp[k] = inputData[j];
-                j++;
+        PriorityQueue<ArrayElement> pq = new PriorityQueue<>();
+        int[] sortedData = new int[(int) len];
+        int[] sectionIndex = new int[cores];
+
+        for (int chunkIdx = 0; chunkIdx < cores; chunkIdx++){
+            pq.offer(new ArrayElement(inputData[chunkIdx * section_len],  chunkIdx));
+
+        }
+        for (int chunkIdx = 0; chunkIdx < cores; chunkIdx++){
+            sectionIndex[chunkIdx] = chunkIdx * section_len;
+        }
+
+        int i = 0;
+        for (int j = 0; j < len - cores; j++){
+            ArrayElement minElement = pq.poll();
+            int minVal = minElement.getValue();
+            int chunkNumber = minElement.getChunkNumber();
+
+            inputData[i] = minVal;
+            sectionIndex[chunkNumber]++;
+
+            if (sectionIndex[chunkNumber] < (chunkNumber + 1) * section_len) {
+                pq.offer(new ArrayElement(inputData[sectionIndex[chunkNumber]],  chunkNumber));
             }
-            k++;
-        }
-
-        while (i <= start2) {
-            temp[k] = inputData[i];
             i++;
-            k++;
-        }
 
-        while (j <= end) {
-            temp[k] = inputData[j];
-            j++;
-            k++;
         }
-
-        System.arraycopy(temp, 0, inputData, 0, end - start1 + 1);
         long elapsedTime = (System.currentTimeMillis() - startOfMergeTime);
         System.out.println("Time for merge function: " + elapsedTime + " ms");
+        System.arraycopy(sortedData, 0, inputData, 0, (int) len);
     }
 }
-
 
 
 
