@@ -15,11 +15,9 @@ public class SortAndStore {
 
             for (int i = 0; i < 25; i++) {
                 int[] inputData = new int[(int) len];
-                int j = 0;
                 try {
-                    while (true) {
+                    for(int j= 0 ;j<len;j++) {
                         inputData[j] = is.readInt();
-                        j += 1;
                     }
                 } catch (EOFException e) {
 

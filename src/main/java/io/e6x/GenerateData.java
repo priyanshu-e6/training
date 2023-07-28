@@ -20,9 +20,10 @@ public class GenerateData {
                 //System.out.print(Integer.toString(randomNumber) + ", ");
                 os.writeInt(randomNumber);
                 numsPut += 1;
-                // TODO: possible speedup
+
             }
             os.flush();
+            System.out.println("total integers written : " + numsPut);
             System.out.println("Random integers have been written to the file.");
             final long duration = (System.nanoTime() - startTime) / 1_000_000;
             System.out.println("Time taken to generate random numbers and write into a file: " + duration);
@@ -30,6 +31,6 @@ public class GenerateData {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
     }
+
 }
