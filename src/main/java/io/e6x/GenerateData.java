@@ -9,12 +9,12 @@ public class GenerateData {
         //generate random numbers file
         final long startTime = System.nanoTime();
         Random random = new Random();
-        int numsPut = 0;
+        long numsPut = 0;
 
         try (DataOutputStream os = new DataOutputStream(new BufferedOutputStream(new FileOutputStream("/home/priyanshu/Desktop/asgnone/inputFile")))) {
             //OutputStreamWriter converts the integer data into bytes and writes in a file
             // Generate and store random integers in the file
-            final long totalNumbers = 40*1024*1024*1024L / 4;
+            final long totalNumbers = 40*1024 * 1024 * 1024L / 4;
 
             System.out.println("Started Writing");
             for (long i = 0; i < totalNumbers; i++) {

@@ -7,7 +7,7 @@ import java.util.concurrent.*;
 public class SortAndStore {
 
     public static void main(String[] args) throws IOException{
-        final long len = 2L * 1024 * 1024* 1024 / 4;
+        final long len = 2L * 1024 * 1024 * 1024 / 4;
 
         long time_makeChunks = System.currentTimeMillis();
         int totalFiles = 20;
@@ -62,7 +62,7 @@ public class SortAndStore {
 
     private static void mergeArraysWithHeaps(String[] files, int totalFiles) throws IOException {
         PriorityQueue<ArrayElement> pq = new PriorityQueue<>();
-        int numPolls = 0;
+        long numPolls = 0;
 
         List<DataInputStream> inputStreams = new ArrayList<>();
         for (int i = 0; i < totalFiles; i++) {
@@ -102,9 +102,7 @@ public class SortAndStore {
 
         }
         System.out.println("Number of polls: " + numPolls);
-
     }
-
     private static void SortArray(int[] toSort, int len){
         int cores = 16;
         long startTime = System.currentTimeMillis();
@@ -131,6 +129,38 @@ public class SortAndStore {
             }
         }
 
+        mergeSectionOfChunk(toSort, cores, lengthToSort,len);
 
+    }
+    private static void mergeSectionOfChunk(int[] inputData, int cores, int section_len, long len) {
+
+        long startOfMergeTime = System.currentTimeMillis();
+        PriorityQueue<ArrayElement> pq = new PriorityQueue<>();
+        int[] sortedData = new int[(int) len];
+        int[] sectionIndex = new int[cores];
+
+        for (int chunkIdx = 0; chunkIdx < cores; chunkIdx++){
+            pq.offer(new ArrayElement(inputData[chunkIdx * section_len],  chunkIdx));
+        }
+
+        for (int chunkIdx = 0; chunkIdx < cores; chunkIdx++){
+            sectionIndex[chunkIdx] = chunkIdx * section_len;
+        }
+
+        int i = 0;
+        for (int j = 0; j < len - cores; j++){
+            ArrayElement minElement = pq.poll();
+            int minVal = minElement.getValue();
+            int chunkNumber = minElement.getChunkNumber();
+
+            inputData[i] = minVal;
+            sectionIndex[chunkNumber]++;
+
+            if (sectionIndex[chunkNumber] < (chunkNumber + 1) * section_len) {
+                pq.offer(new ArrayElement(inputData[sectionIndex[chunkNumber]],  chunkNumber));
+            }
+            i++;
+        }
+        System.arraycopy(sortedData, 0, inputData, 0, (int) len);
     }
 }
