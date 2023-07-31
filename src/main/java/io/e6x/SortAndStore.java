@@ -1,27 +1,31 @@
 package io.e6x;
-
 import java.io.*;
 import java.util.*;
+
 import java.util.concurrent.*;
 
 public class SortAndStore {
 
-    public static void main(String[] args) {
-        final long len = 2L * 1024 / 4;
-        long file_size = len * 4;
-        String[] files = new String[25];
+    public static void main(String[] args) throws IOException{
+        final long len = 2L * 1024 * 1024* 1024 / 4;
+
         long time_makeChunks = System.currentTimeMillis();
+        int totalFiles = 20;
+        String[] files = new String[totalFiles];
         try (DataInputStream is = new DataInputStream(new BufferedInputStream(new FileInputStream("/home/priyanshu/Desktop/asgnone/inputFile")))
         ) {
             System.out.println("Sorting into chunks started");
-            for (int i = 0; i < 25; i++) {
+            for (int i = 0; i < totalFiles; i++) {
+
                 int[] inputData = new int[(int) len];
 
                 for (int j = 0; j < len; j++) {
                     inputData[j] = is.readInt();
                 }
 
-                Arrays.sort(inputData);
+                //Arrays.sort(inputData);
+
+                SortArray(inputData, (int)len);
 
                 String file_name = "/home/priyanshu/Desktop/asgnone/inputFile" + (i + 1);
                 files[i] = file_name;
@@ -30,7 +34,7 @@ public class SortAndStore {
 
                     int inputDataLength = inputData.length;
 
-                    for (int j = 0; j < inputDataLength; j++) {
+                    for (int j = 0; j < inputDataLength; j++){
                         int number = inputData[j];
                         os.writeInt(number);
                     }
@@ -38,25 +42,30 @@ public class SortAndStore {
                     e.printStackTrace();
                 }
             }
+
         } catch (IOException e) {
             e.printStackTrace();
         }
+
         long timeElapse_makeChunks = System.currentTimeMillis() - time_makeChunks;
-        System.out.println("Time elapsed to make sorted chunks: " + timeElapse_makeChunks);
+        System.out.println("Time elapsed to make sorted chunks: " + timeElapse_makeChunks/1_000);
 
         System.out.println("merging of chunks started");
         long time_mergeChunks = System.currentTimeMillis();
-        mergeArraysWithHeaps(files);
-        long elapsedTime_mergeChunks = System.currentTimeMillis() - time_makeChunks;
-        System.out.println("Time passed to merge chunks: " + time_mergeChunks);
+        mergeArraysWithHeaps(files, totalFiles);
+        long elapsedTime_mergeChunks = System.currentTimeMillis() - time_mergeChunks;
+        System.out.println("Time passed to merge chunks: " + elapsedTime_mergeChunks);
+        long totalTime = System.currentTimeMillis() - time_makeChunks;
+        System.out.println("Time taken to complete the sorting: "+ totalTime);
+
     }
 
-    private static void mergeArraysWithHeaps(String[] files) {
+    private static void mergeArraysWithHeaps(String[] files, int totalFiles) throws IOException {
         PriorityQueue<ArrayElement> pq = new PriorityQueue<>();
         int numPolls = 0;
 
         List<DataInputStream> inputStreams = new ArrayList<>();
-        for(int i=0;i<25;i++){
+        for (int i = 0; i < totalFiles; i++) {
             try {
                 inputStreams.add(new DataInputStream(new BufferedInputStream(new FileInputStream(files[i]))));
             } catch (FileNotFoundException e) {
@@ -64,15 +73,16 @@ public class SortAndStore {
             }
         }
 
-        for (int i = 0; i < 25; i++) {
+        for (int i = 0; i < totalFiles; i++) {
             try {
                 DataInputStream dis = inputStreams.get(i);
                 int val = dis.readInt();
                 pq.offer(new ArrayElement(val, i));
-            }catch (Exception e){
+            } catch (Exception e) {
                 throw new RuntimeException(e);
             }
         }
+        DataOutputStream os = new DataOutputStream(new BufferedOutputStream(new FileOutputStream("/home/priyanshu/Desktop/asgnone/outputFile")));
 
         while (!pq.isEmpty()) {
 
@@ -80,29 +90,47 @@ public class SortAndStore {
             numPolls += 1;
             int minVal = minElement.getValue();
             int chunkNumber = minElement.getChunkNumber();
+            os.writeInt(minVal);
 
-            try (
-                    DataOutputStream os = new DataOutputStream(new BufferedOutputStream(new FileOutputStream("/home/priyanshu/Desktop/asgnone/outputFile")))) {
-                os.writeInt(minVal);
+            try {
                 DataInputStream dis = inputStreams.get(chunkNumber);
+                int val = dis.readInt();
+                pq.offer(new ArrayElement(val, chunkNumber));
+            } catch (EOFException e) {
 
-                try {
-                    int val = dis.readInt();
-                    pq.offer(new ArrayElement(val, chunkNumber));
-                }
-                catch(EOFException e){
+            }
 
-                }
+        }
+        System.out.println("Number of polls: " + numPolls);
 
-            } catch (Exception e) {
+    }
+
+    private static void SortArray(int[] toSort, int len){
+        int cores = 16;
+        long startTime = System.currentTimeMillis();
+        int lengthToSort = len / cores;
+        ExecutorService executorService = Executors.newFixedThreadPool(cores);
+        List<Future<?>> allFuture = new ArrayList<>();
+
+        for (int i = 0; i < cores; i++) {
+            int startIdx = i * lengthToSort;
+            int endIdx = startIdx + lengthToSort;
+            if (i == cores - 1) {
+
+                endIdx = (int) len;
+            }
+            allFuture.add(executorService.submit(new Sort(toSort, startIdx, endIdx)));
+        }
+
+
+        for (Future<?> future : allFuture) {
+            try {
+                future.get();
+            } catch (InterruptedException | ExecutionException e) {
                 e.printStackTrace();
             }
         }
 
-        System.out.println("Number of polls: " + numPolls);
-    }
-
-    private static void SortArray(int[] toSort){
 
     }
 }
