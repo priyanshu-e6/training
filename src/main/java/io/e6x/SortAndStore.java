@@ -8,10 +8,11 @@ public class SortAndStore {
 
     public static void main(String[] args) throws IOException{
         final long len = 2L * 1024 * 1024 * 1024 / 4;
-
+        ExecutorService executorService = Executors.newFixedThreadPool(8);
         long time_makeChunks = System.currentTimeMillis();
         int totalFiles = 20;
         String[] files = new String[totalFiles];
+
         try (DataInputStream is = new DataInputStream(new BufferedInputStream(new FileInputStream("/home/priyanshu/Desktop/asgnone/inputFile")))
         ) {
             System.out.println("Sorting into chunks started");
@@ -23,12 +24,17 @@ public class SortAndStore {
                     inputData[j] = is.readInt();
                 }
 
-                //Arrays.sort(inputData);
+                long time_sortEachChunk = System.currentTimeMillis();
 
-                SortArray(inputData, (int)len);
+                //normalSort(inputData);
 
+                SortArray(inputData, (int)len, executorService);
+                long timeElapse_sortEachChunk = System.currentTimeMillis() - time_sortEachChunk;
+                //System.out.println("time to sort chunk " + i+1 + " with normal sorting " + ": " + timeElapse_sortEachChunk);
+                System.out.println("time to sort chunk " +  i + " with parallel sorting" + ": " + timeElapse_sortEachChunk);
                 String file_name = "/home/priyanshu/Desktop/asgnone/inputFile" + (i + 1);
                 files[i] = file_name;
+
                 try (FileOutputStream fileOutputStream = new FileOutputStream(file_name);
                      DataOutputStream os = new DataOutputStream(new BufferedOutputStream(fileOutputStream))) {
 
@@ -59,7 +65,6 @@ public class SortAndStore {
         System.out.println("Time taken to complete the sorting: "+ totalTime);
 
     }
-
     private static void mergeArraysWithHeaps(String[] files, int totalFiles) throws IOException {
         PriorityQueue<ArrayElement> pq = new PriorityQueue<>();
         long numPolls = 0;
@@ -99,15 +104,19 @@ public class SortAndStore {
             } catch (EOFException e) {
 
             }
-
         }
         System.out.println("Number of polls: " + numPolls);
     }
-    private static void SortArray(int[] toSort, int len){
-        int cores = 16;
+
+
+    private static void normalSort(int[] toSort){
+        Arrays.sort(toSort);
+    }
+    private static void SortArray(int[] toSort, int len, ExecutorService executorService){
+        int cores = 8;
         long startTime = System.currentTimeMillis();
         int lengthToSort = len / cores;
-        ExecutorService executorService = Executors.newFixedThreadPool(cores);
+
         List<Future<?>> allFuture = new ArrayList<>();
 
         for (int i = 0; i < cores; i++) {
@@ -119,8 +128,6 @@ public class SortAndStore {
             }
             allFuture.add(executorService.submit(new Sort(toSort, startIdx, endIdx)));
         }
-
-
         for (Future<?> future : allFuture) {
             try {
                 future.get();
@@ -161,6 +168,7 @@ public class SortAndStore {
             }
             i++;
         }
+
         System.arraycopy(sortedData, 0, inputData, 0, (int) len);
     }
 }
