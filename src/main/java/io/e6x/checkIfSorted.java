@@ -7,7 +7,7 @@ import java.util.concurrent.*;
 public class checkIfSorted{
 
     public static void main(String[] args){
-        String filePath = "/home/priyanshu/Desktop/asgnone/inputFile1";
+        String filePath = "/home/priyanshu/Desktop/asgnone/outputFile";
         if (isFileSorted(filePath)) {
             System.out.println("The data in the file is sorted.");
         } else {
