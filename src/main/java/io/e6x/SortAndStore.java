@@ -7,38 +7,35 @@ import java.util.concurrent.*;
 public class SortAndStore {
 
     public static void main(String[] args) throws IOException{
-        final long len = 2L * 1024 * 1024 *  1024 / 4;
-        ExecutorService executorServiceToSort = Executors.newFixedThreadPool(8);
+        final long lenBytes = 2L *  1024;
+        final long len =  lenBytes/ 4;
+        int cores = 8;
+        ExecutorService executorServiceToReadAndSort = Executors.newFixedThreadPool(cores);
         long time_makeChunks = System.currentTimeMillis();
         int totalFiles = 20;
         String[] files = new String[totalFiles];
+        System.out.println("Sorting into chunks started");
 
-        try (DataInputStream is = new DataInputStream(new BufferedInputStream(new FileInputStream("/home/priyanshu/Desktop/asgnone/inputFile")))
-        ) {
-            System.out.println("Sorting into chunks started");
-            for (int i = 0; i < totalFiles; i++) {
+        for (int i = 0; i < totalFiles; i++) {
 
-                int[] inputData = new int[(int) len];
-                for (int j = 0; j < len; j++) {
-                    inputData[j] = is.readInt();
-                }
-                long timeSortEachChunk = System.currentTimeMillis();
+            long fileStartIdx = i  * lenBytes;
+            long timeSortEachChunk = System.currentTimeMillis();
+            String fileName = "/home/priyanshu/Desktop/asgnone/inputFile" + (i + 1);
+            files[i] = fileName;
+            ReadAndSortAndStore((int)len, executorServiceToReadAndSort, fileName, cores, fileStartIdx);
+            long timeElapse_sortEachChunk = System.currentTimeMillis() - timeSortEachChunk;
+            System.out.println("time to read and sort and store chunk " +  i + " with parallel reading and sorting" + ": " + timeElapse_sortEachChunk);
+        }
 
-                String fileName = "/home/priyanshu/Desktop/asgnone/inputFile" + (i + 1);
-                files[i] = fileName;
-
-                SortArrayAndStore(inputData, (int)len, executorServiceToSort, fileName);
-                long timeElapse_sortEachChunk = System.currentTimeMillis() - timeSortEachChunk;
-                //System.out.println("time to sort chunk and write " + i+1 + " with normal sorting " + ": " + timeElapse_sortEachChunk);
-                System.out.println("time to sort chunk " +  i + " with parallel sorting" + ": " + timeElapse_sortEachChunk);
-            }
-        } catch (IOException e) {
+        executorServiceToReadAndSort.shutdown();
+        try {
+            executorServiceToReadAndSort.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+        } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        executorServiceToSort.shutdown();
 
         long timeElapse_makeChunks = System.currentTimeMillis() - time_makeChunks;
-        System.out.println("Time elapsed to make sorted chunks: " + timeElapse_makeChunks/1_000);
+        System.out.println("Time elapsed to make sorted chunks: " + timeElapse_makeChunks);
 
         System.out.println("merging of chunks started");
         long time_mergeChunks = System.currentTimeMillis();
@@ -47,6 +44,16 @@ public class SortAndStore {
         System.out.println("Time passed to merge chunks: " + elapsedTime_mergeChunks);
         long totalTime = System.currentTimeMillis() - time_makeChunks;
         System.out.println("Time taken to complete the sorting: "+ totalTime);
+
+       /* try(DataInputStream dis = new DataInputStream(new FileInputStream("/home/priyanshu/Desktop/asgnone/outputFile"))){
+            for(int i=0 ;i < 100;i++){
+                int val = dis.readInt();
+                System.out.println(val);
+            }
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }*/
 
     }
     private static void mergeArraysWithHeaps(String[] files, int totalFiles) throws IOException {
@@ -86,22 +93,20 @@ public class SortAndStore {
             } catch (EOFException e) {
             }
         }
+        os.flush();
         System.out.println("Number of polls: " + numPolls);
+
     }
+    private static void ReadAndSortAndStore(int len, ExecutorService executorService, String fileName, int cores, long fileStartIdx) throws IOException{
 
-    private static void SortArrayAndStore(int[] toSort, int len, ExecutorService executorService, String fileName) throws IOException{
-
-        int cores = 8;
         int lengthToSort = len / cores;
-
         List<Future<?>> allFuture = new ArrayList<>();
+        int[] toSort = new int[len];
+
         for (int i = 0; i < cores; i++) {
-            int startIdx = i * lengthToSort;
-            int endIdx = startIdx + lengthToSort;
-            if (i == cores - 1) {
-                endIdx = (int) len;
-            }
-            allFuture.add(executorService.submit(new Sort(toSort, startIdx, endIdx)));
+            int arrStartIdx = i * lengthToSort;
+            int arrEndIdx = (i + 1) * lengthToSort;
+            allFuture.add(executorService.submit(new ReadAndSort(toSort, fileStartIdx + (lengthToSort * 4 * i) ,fileName, arrStartIdx, arrEndIdx)));
         }
 
         for (Future<?> future : allFuture) {
@@ -111,9 +116,9 @@ public class SortAndStore {
                 e.printStackTrace();
             }
         }
-
         mergeSectionsOfChunk(toSort, cores, lengthToSort,len, fileName);
     }
+
     private static void mergeSectionsOfChunk(int[] toSort, int cores, int section_len, long len, String fileName) throws IOException{
 
 
@@ -127,14 +132,13 @@ public class SortAndStore {
         for (int chunkIdx = 0; chunkIdx < cores; chunkIdx++){
             sectionIndex[chunkIdx] = chunkIdx * section_len;
         }
-
         DataOutputStream os = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(fileName)));
-
-         for (int j = 0; j < len - cores; j++) {
+        //long totalElem = 0;
+         for (int j = 0; j < len ; j++) {
              ArrayElement minElement = pq.poll();
              int minVal = minElement.getValue();
              int chunkNumber = minElement.getChunkNumber();
-
+            //totalElem += 1;
              os.writeInt(minVal);
              sectionIndex[chunkNumber]++;
 
@@ -142,6 +146,7 @@ public class SortAndStore {
                  pq.offer(new ArrayElement(toSort[sectionIndex[chunkNumber]], chunkNumber));
              }
          }
+        //System.out.println("total elements in the file " + totalElem);
          os.flush();
     }
 }
