@@ -19,24 +19,33 @@ public class ReadAndSort  implements Runnable {
         this.arrIdxEnd = arrIdxEnd;
     }
     public void run(){
-        try (RandomAccessFile raf = new RandomAccessFile(filename, "r")) {
+        try  {
+            RandomAccessFile raf = new RandomAccessFile(filename, "r");
             raf.seek(fileStartIdx);
+            BufferedInputStream bis = new BufferedInputStream(new FileInputStream(raf.getFD()));
+
+            // Wrap BufferedInputStream in InputStreamReader and BufferedReader for reading lines
+            InputStreamReader isr = new InputStreamReader(bis);
+            BufferedReader br = new BufferedReader(isr);
             int idx = arrIdxStart;
-
+            byte[] buffer = new byte[4];
             while (idx < arrIdxEnd) {
-                // Process or store the read integer as needed
-                int val = 0;
-                try {
-                    val = raf.readInt();
-                    arr[idx] = val;
-                    System.out.println("value read: " + val);
-                    idx += 1;
-                } catch (EOFException e) {
 
-                    break;
+                int bytesRead = bis.read(buffer);
+                if (bytesRead != -1) {
+                    // Process the read data (e.g., convert bytes to an integer)
+                    int intValue = ((buffer[3] & 0xFF) << 24) |
+                            ((buffer[2] & 0xFF) << 16) |
+                            ((buffer[1] & 0xFF) << 8) |
+                            (buffer[0] & 0xFF);
+                    arr[idx] = intValue;
+                    idx+=1;
                 }
             }
-            // Sort only the elements that were read in this chunk
+            br.close();
+            bis.close();
+            raf.close();
+
             Arrays.sort(arr, arrIdxStart, idx);
         } catch (IOException e) {
             e.printStackTrace();

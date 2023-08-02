@@ -15,7 +15,7 @@ public class GenerateData {
             //OutputStreamWriter converts the integer data into bytes and writes in a file
             // Generate and store random integers in the file
             //1024* 1024*
-            final long totalNumbers = 40* 1024L / 4;
+            final long totalNumbers = 40* 1024* 1024*1024L / 4;
 
             System.out.println("Started Writing");
             for (long i = 0; i < totalNumbers; i++) {
