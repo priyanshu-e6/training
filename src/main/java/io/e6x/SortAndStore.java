@@ -9,7 +9,7 @@ public class SortAndStore {
     public static void main(String[] args) throws IOException{
         final long lenBytes = 2L *1024* 1024*  1024;
         final long len =  lenBytes/ 4;
-        int cores = 4;
+        int cores = 16;
         ExecutorService executorServiceToReadAndSort = Executors.newFixedThreadPool(cores);
         long time_makeChunks = System.currentTimeMillis();
         int totalFiles = 20;
@@ -26,14 +26,15 @@ public class SortAndStore {
             long timeElapse_sortEachChunk = System.currentTimeMillis() - timeSortEachChunk;
             System.out.println("time to read and sort and store chunk " +  i + " with parallel reading and sorting" + ": " + timeElapse_sortEachChunk);
         }
-
         executorServiceToReadAndSort.shutdown();
         try {
             executorServiceToReadAndSort.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-
+        if(totalFiles == 1) {
+            System.exit(0);
+        }
         long timeElapse_makeChunks = System.currentTimeMillis() - time_makeChunks;
         System.out.println("Time elapsed to make sorted chunks: " + timeElapse_makeChunks);
 
@@ -45,15 +46,6 @@ public class SortAndStore {
         long totalTime = System.currentTimeMillis() - time_makeChunks;
         System.out.println("Time taken to complete the sorting: "+ totalTime);
 
-        /*try(DataInputStream dis = new DataInputStream(new FileInputStream("/home/priyanshu/Desktop/asgnone/outputFile"))){
-            for(int i=0 ;i < 100;i++){
-                int val = dis.readInt();
-                System.out.println(val);
-            }
-        }
-        catch (Exception e){
-            e.printStackTrace();
-        }*/
 
     }
     private static void mergeArraysWithHeaps(String[] files, int totalFiles) throws IOException {
